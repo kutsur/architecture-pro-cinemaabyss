@@ -1,0 +1,35 @@
+@startuml CinemaAbyss Container Diagram
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Container Diagram для системы CinemaAbyss (To-Be архитектура)
+
+Person(user, "Пользователь", "Клиент кинотеатра")
+
+System_Boundary(cinemaabyss, "CinemaAbyss System") {
+    Container(proxy, "API Gateway", "Go", "Единая точка входа. Реализует паттерн Strangler Fig для постепенной миграции трафика")
+    
+    Container(monolith, "Monolith Service", "Go, PostgreSQL", "Управление пользователями, платежами и подписками")
+    
+    Container(movies, "Movies Service", "Go, PostgreSQL", "Управление метаданными фильмов, рейтингами и жанрами")
+    
+    Container(events, "Events Service", "Go, Kafka", "Обработка событий системы (просмотры, регистрации, платежи)")
+    
+    ContainerDb(db, "PostgreSQL", "PostgreSQL", "Хранение данных пользователей, фильмов, платежей и подписок")
+    
+    Container(kafka, "Kafka", "Apache Kafka", "Брокер сообщений для асинхронной коммуникации между сервисами")
+}
+
+Rel(user, proxy, "Использует", "HTTPS/REST")
+
+Rel(proxy, monolith, "Маршрутизирует запросы", "HTTP/REST")
+Rel(proxy, movies, "Маршрутизирует запросы", "HTTP/REST")
+Rel(proxy, events, "Маршрутизирует запросы", "HTTP/REST")
+
+Rel(monolith, db, "Читает/Записывает", "SQL")
+Rel(movies, db, "Читает/Записывает", "SQL")
+
+Rel(monolith, kafka, "Публикует события", "Kafka Protocol")
+Rel(movies, kafka, "Публикует события", "Kafka Protocol")
+Rel(events, kafka, "Читает/Публикует события", "Kafka Protocol")
+
+@enduml
